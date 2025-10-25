@@ -1,0 +1,1354 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Azure Analytics Dashboard</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.1.0/dist/chartjs-adapter-luxon.min.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+
+  <!-- FontAwesome for Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css" rel="stylesheet">
+
+  <!-- XLSX Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+
+  <style>
+    body {
+      font-family: "Inter", "Segoe UI", sans-serif;
+      background-color: #111827;
+      color: #f3f4f6;
+    }
+    .sidebar {
+      background: linear-gradient(180deg, #0ea5e9, #1e3a8a);
+      height: 100vh;
+      position: fixed;
+      width: 220px;
+      color: white;
+      padding-top: 1rem;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    }
+    .sidebar h3 {
+      font-size: 1.3rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+    .sidebar .nav-link {
+      color: #f3f4f6;
+      border-radius: 6px;
+      margin: 4px 8px;
+      padding: 10px 15px;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+    }
+    .sidebar .nav-link i {
+      font-size: 20px;
+      margin-right: 12px;
+      color: #f3f4f6;
+      width: 24px;
+      text-align: center;
+    }
+    .sidebar .nav-link.active,
+    .sidebar .nav-link:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .sidebar .nav-link.active i,
+    .sidebar .nav-link:hover i {
+      color: #e0f2fe;
+    }
+    .main-content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    .card {
+      border-radius: 1rem;
+      background-color: #1f2937;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      border: none;
+      color: #f3f4f6;
+    }
+    h1, h4, h5 {
+      color: #e0f2fe;
+    }
+    .table {
+      color: #f3f4f6;
+    }
+    .table thead {
+      background-color: #0ea5e9;
+      color: white;
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      min-height: 300px;
+      margin-bottom: 2rem;
+    }
+    .loading-spinner { display: none; text-align: center; margin: 1rem 0; }
+    .error-message { color: #f87171; display: none; margin: 1rem 0; }
+    .highlight {
+      background: #065f46 !important;
+      color: #f3f4f6;
+    }
+    .user-trends-box {
+      background-color: #1f2937;
+      border-radius: 1rem;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar d-flex flex-column">
+  <h3>Azure Analytics</h3>
+  <nav class="nav flex-column">
+    <a class="nav-link active" href="#usage-trends" data-bs-toggle="tab">
+      <i class="fas fa-chart-bar"></i> Usage Trends
+    </a>
+    <a class="nav-link" href="#forecast" data-bs-toggle="tab">
+      <i class="fas fa-chart-line"></i> Forecast
+    </a>
+    <a class="nav-link" href="#cost-estimation" data-bs-toggle="tab">
+      <i class="fas fa-dollar-sign"></i> Cost Estimation
+    </a>
+    <a class="nav-link" href="#insights" data-bs-toggle="tab">
+      <i class="fas fa-lightbulb"></i> Insights
+    </a>
+    <a class="nav-link" href="#reports" data-bs-toggle="tab">
+      <i class="fas fa-file-alt"></i> Reports
+    </a>
+    
+    <a class="nav-link" href="#capacity-planning" data-bs-toggle="tab">
+      <i class="fas fa-project-diagram"></i> Capacity Planning
+    </a>
+    <a class="nav-link" href="#monitoring" data-bs-toggle="tab">
+      <i class="fas fa-tachometer-alt"></i> Monitoring
+    </a>
+
+    <a class="nav-link" href="#model-comparison" data-bs-toggle="tab">
+      <i class="fas fa-table"></i> Model Comparison
+    </a>
+  </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+  <div class="container-fluid">
+    <h1 class="fw-bold mb-4">Azure Demand Forecasting</h1>
+
+    <!-- Shared Filters -->
+    <div class="card p-4 mb-4">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label"><strong>Date Range</strong></label>
+          <input type="date" id="start-date" class="form-control" value="2023-01-01">
+          <input type="date" id="end-date" class="form-control mt-2" value="2023-09-30">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Region</label>
+          <select id="region-select" class="form-select">
+            <option value="">All Regions</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Service</label>
+          <select id="service-select" class="form-select">
+            <option value="">All Services</option>
+            <option value="compute">Compute</option>
+            <option value="storage">Storage</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button id="apply-filters" class="btn btn-primary mt-2">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Usage Trends -->
+      <div class="tab-pane fade show active" id="usage-trends">
+        <div class="card p-4 mb-4">
+          <div class="user-trends-box">
+            <h4 class="mb-3">User Trends</h4>
+            <div class="row mb-3 text-center">
+              <div class="col-md-3">Avg Active Users: <span id="avg-users" class="fw-bold">--</span></div>
+              <div class="col-md-3">Max Active Users: <span id="max-users" class="fw-bold">--</span></div>
+              <div class="col-md-3">Min Active Users: <span id="min-users" class="fw-bold">--</span></div>
+              <div class="col-md-3">User Growth Trend: <span id="user-growth" class="fw-bold">--</span></div>
+            </div>
+            <div class="chart-container"><canvas id="user-trends-chart"></canvas></div>
+          </div>
+          <h4 class="mb-3">Usage Trends</h4>
+          <div class="row mb-3 text-center">
+            <div class="col-md-3">Avg CPU: <span id="avgCpu" class="fw-bold">--</span></div>
+            <div class="col-md-3">Avg Storage: <span id="avgStorage" class="fw-bold">--</span></div>
+            <div class="col-md-3">Avg Users: <span id="avgUsers" class="fw-bold">--</span></div>
+            <div class="col-md-3">Regions: <span id="totalRegions" class="fw-bold">--</span></div>
+          </div>
+          <div class="mb-4">
+            <h5>Usage Trends Graph</h5>
+            <div class="chart-container"><canvas id="usage-trends-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Resource Type Breakdown</h5>
+            <div class="chart-container"><canvas id="resource-type-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Regional CPU Usage Distribution</h5>
+            <div class="chart-container"><canvas id="regional-cpu-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forecast -->
+      <div class="tab-pane fade" id="forecast">
+        <div class="card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Forecast</h4>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="toggleCI" checked>
+              <label class="form-check-label" for="toggleCI">Show Confidence Interval</label>
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Time Horizon</label>
+              <select id="time-horizon" class="form-select">
+                <option value="7">7 days</option>
+                <option value="14">14 days</option>
+                <option value="30">30 days</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Model</label>
+              <select id="model-select" class="form-select"></select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button id="generate-forecast" class="btn btn-primary w-100">Generate</button>
+            </div>
+          </div>
+          <div class="loading-spinner"><div class="spinner-border text-primary"></div></div>
+          <div class="error-message">Error loading forecast.</div>
+          <div class="mb-4">
+            <h5>Forecast Graph</h5>
+            <div class="chart-container"><canvas id="forecast-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Actual vs Predicted</h5>
+            <div class="chart-container"><canvas id="actual-vs-predicted-chart"></canvas></div>
+          </div>
+          <button id="download-forecast" class="btn btn-secondary mt-3">Download Forecast (Excel)</button>
+        </div>
+      </div>
+
+      <!-- Cost Estimation -->
+      <div class="tab-pane fade" id="cost-estimation">
+        <div class="card p-4 mb-4">
+          <h4 class="mb-3">Cost Estimation</h4>
+          <p>Global cloud spending forecast: $723.4 billion in 2023</p>
+          <div class="row mb-3 text-center">
+            <div class="col-md-4">Estimated Cost (Compute): <span id="cost-compute" class="fw-bold">--</span></div>
+            <div class="col-md-4">Estimated Cost (Storage): <span id="cost-storage" class="fw-bold">--</span></div>
+            <div class="col-md-4">Total Estimated Cost: <span id="cost-total" class="fw-bold">--</span></div>
+          </div>
+          <div class="mb-4">
+            <h5>Cost Trend Graph</h5>
+            <div class="chart-container"><canvas id="cost-trend-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Cloud Market Demand Trend</h5>
+            <div class="chart-container"><canvas id="market-demand-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <div class="tab-pane fade" id="insights">
+        <div class="card p-4 mb-4">
+          <h4 class="mb-3">Insights</h4>
+          <div class="row mb-3 text-center">
+            <div class="col-md-4">Peak Demand Times: <span id="peak-demand" class="fw-bold">--</span></div>
+            <div class="col-md-4">High-Growth Regions: <span id="growth-regions" class="fw-bold">--</span></div>
+            <div class="col-md-4">External Factors Impact: <span id="external-factors" class="fw-bold">--</span></div>
+          </div>
+          <ul id="insights-list">
+            <p>Azure revenue growth: 33% in Q1 2023</p>
+            <p>Top trends: AIOps, cloud-native monitoring</p>
+            <p>Cloud spending growth: 21.5% in 2023</p>
+          </ul>
+          <div class="mb-4">
+            <h5>Economic Index Impact</h5>
+            <div class="chart-container"><canvas id="holiday-impact-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Holiday Usage Proportion</h5>
+            <div class="chart-container"><canvas id="holiday-pie-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Active Users by Region</h5>
+            <div class="chart-container"><canvas id="users-by-region-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Holiday vs. Non-Holiday Storage Usage</h5>
+            <div class="chart-container"><canvas id="holiday-storage-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports -->
+      <div class="tab-pane fade" id="reports">
+        <div class="card p-4 mb-4">
+          <h4 class="mb-3">Reports</h4>
+          <div class="report-filters">
+            <label for="start-date-report">Start Date:</label>
+            <input type="date" id="start-date-report" />
+            <label for="end-date-report">End Date:</label>
+            <input type="date" id="end-date-report" />
+            <label for="region-select-report">Region:</label>
+            <select id="region-select-report">
+              <option value="">--Select Region--</option>
+            </select>
+            <label for="service-select-report">Service:</label>
+            <select id="service-select-report">
+              <option value="">--Select Service--</option>
+              <option value="Compute">Compute</option>
+              <option value="Storage">Storage</option>
+            </select>
+            <button id="generate-report">Generate Report</button>
+          </div>
+          <table id="report-table" border="1" style="margin-top:20px; width:100%; display:none;">
+            <thead><tr id="table-head"></tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+
+      <!-- Capacity Planning -->
+      <div class="tab-pane fade" id="capacity-planning">
+        <div class="card p-4 mb-4">
+          <h4 class="mb-3">Capacity Planning</h4>
+          <div class="chart-container"><canvas id="capacity-forecast-chart"></canvas></div>
+          <div class="chart-container"><canvas id="capacity-vs-forecast-chart"></canvas></div>
+          <div id="risk-indicators" class="mt-3"></div>
+          <div class="recommendations mt-4">
+            <h5>Recommendations</h5>
+            <ul id="recommendations-list"></ul>
+          </div>
+          <button class="btn btn-secondary mt-3" id="download-report">Download Forecast Report</button>
+        </div>
+      </div>
+
+      <!-- Monitoring -->
+      <div class="tab-pane fade" id="monitoring">
+        <div class="card p-4 mb-4">
+          <h4 class="mb-3">Model Monitoring</h4>
+          <div class="chart-container"><canvas id="accuracy-trend-chart"></canvas></div>
+          <p id="error-drift-alert" class="text-warning fw-bold"></p>
+          <p>Last Retrain: <span id="last-retrain">--</span></p>
+          <p>Forecast Health: <span id="forecast-health">🟢 Stable</span></p>
+        </div>
+      </div>
+
+      <!-- Model Comparison -->
+      <div class="tab-pane fade" id="model-comparison">
+        <div class="card p-4 mb-4">
+          <h4 class="mb-3">Model Comparison</h4>
+          <div class="loading-spinner"><div class="spinner-border text-primary"></div></div>
+          <div class="error-message">Error loading models.</div>
+          <div class="mb-4">
+            <h5>Model Performance Comparison</h5>
+            <div class="chart-container"><canvas id="model-performance-chart"></canvas></div>
+          </div>
+          <div class="mb-4">
+            <h5>Training vs. Inference Time</h5>
+            <div class="chart-container"><canvas id="model-time-chart"></canvas></div>
+          </div>
+          <table class="table table-bordered mt-3" id="model-comparison-table">
+            <thead>
+              <tr>
+                <th>Model</th><th>Image</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>Train Time</th><th>Inference</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p id="best-model-highlight" class="fw-bold"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="dashboard.js">
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+</body>
+</html>
+
+<script>
+// Simulated daily data for Jan 1, 2023 to Sep 30, 2023
+const rawData = [];
+const regions = ['East US', 'West US', 'North Europe', 'Southeast Asia'];
+const resourceTypes = ['VM', 'Storage', 'Container'];
+
+function getRandomValue(base, variation) {
+    return base + (Math.random() - 0.5) * variation;
+}
+
+// Simulate growth with 21.5% growth by Sep 30
+let baseCpu = 70;
+let baseStorage = 1500;
+let baseUsers = 400;
+const growthRate = 1.215; // 21.5% growth
+const days = (new Date(2023, 11, 31) - new Date(2023, 0, 1)) / (1000 * 60 * 60 * 24);
+const dailyGrowth = Math.pow(growthRate, 1 / days);
+
+for (let d = new Date(2023, 0, 1); d <= new Date(2023, 11, 31); d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0].split('-').reverse().join('-');
+    const region = regions[Math.floor(Math.random() * regions.length)];
+    const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+    const holiday = (d.getMonth() === 0 && d.getDate() <= 2) || (d.getMonth() === 8 && d.getDate() === 30) ? 1 : 0;
+    const economicIndex = getRandomValue(100, 5);
+    const cloudMarketDemand = getRandomValue(1.0, 0.2);
+
+    rawData.push({
+        date: dateStr,
+        usage_cpu: getRandomValue(baseCpu, 20),
+        usage_storage: getRandomValue(baseStorage, 500),
+        users_active: getRandomValue(baseUsers, 100),
+        Region: region,
+        ResourceType: resourceType,
+        holiday: holiday,
+        economic_index: economicIndex,
+        cloud_market_demand: cloudMarketDemand
+    });
+
+    baseCpu *= dailyGrowth;
+    baseStorage *= dailyGrowth;
+    baseUsers *= dailyGrowth;
+}
+
+// Model comparison data
+const modelData = [
+    { name: 'LSTM', mae: 0.35, rmse: 0.50, mape: 0.6, train_time: 200, inference_time: 80, image: 'https://via.placeholder.com/30?text=LSTM' },
+    { name: 'XGBoost', mae: 0.28, rmse: 0.44, mape: 0.5, train_time: 120, inference_time: 50, image: 'https://via.placeholder.com/30?text=XGB' },
+    { name: 'ARIMA', mae: 7.66, rmse: 9.52, mape: 9.71, train_time: 180, inference_time: 70, image: 'https://via.placeholder.com/30?text=ARIMA' }
+];
+
+// Simulated forecast data
+const sampleForecastData = {
+    dates: ['2023-10-01', '2023-10-02', '2023-10-03', '2023-10-04', '2023-10-05', '2023-10-06', '2023-10-07', '2023-10-08', '2023-10-09', '2023-10-10', '2023-10-11', '2023-10-12', '2023-10-13', '2023-10-14'],
+    actual: [null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+    predicted: [75.2, 76.1, 74.8, 73.9, 75.5, 76.3, 77.0, 76.5, 75.8, 76.2, 77.5, 78.0, 77.2, 78.1],
+    ci_lower: [72.2, 73.1, 71.8, 70.9, 72.5, 73.3, 74.0, 73.5, 72.8, 73.2, 74.5, 75.0, 74.2, 75.1],
+    ci_upper: [78.2, 79.1, 77.8, 76.9, 78.5, 79.3, 80.0, 79.5, 78.8, 79.2, 80.5, 81.0, 80.2, 81.1]
+};
+
+function parseDate(dateStr) {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+
+function filterData(startDate, endDate, region, service) {
+    let filtered = rawData;
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        filtered = filtered.filter(d => {
+            const date = new Date(parseDate(d.date));
+            return date >= start && date <= end;
+        });
+    }
+    if (region) filtered = filtered.filter(d => d.Region === region);
+    if (service) {
+        if (service === 'compute') filtered = filtered.filter(d => ['VM', 'Container'].includes(d.ResourceType));
+        else if (service === 'storage') filtered = filtered.filter(d => d.ResourceType === 'Storage');
+    }
+    return filtered;
+}
+
+function aggregateData(data) {
+    const dates = [...new Set(data.map(d => parseDate(d.date)))].sort();
+    const cpuUsage = dates.map(date => data.filter(d => parseDate(d.date) === date).reduce((sum, d) => sum + d.usage_cpu, 0) / (data.length || 1));
+    const storageUsage = dates.map(date => data.filter(d => parseDate(d.date) === date).reduce((sum, d) => sum + d.usage_storage, 0) / (data.length || 1));
+    const activeUsers = dates.map(date => data.filter(d => parseDate(d.date) === date).reduce((sum, d) => sum + d.users_active, 0) / (data.length || 1));
+    const economicIndex = dates.map(date => data.filter(d => parseDate(d.date) === date).reduce((sum, d) => sum + d.economic_index, 0) / (data.length || 1));
+    const cloudMarketDemand = dates.map(date => data.filter(d => parseDate(d.date) === date).reduce((sum, d) => sum + d.cloud_market_demand, 0) / (data.length || 1));
+    const resourceTypes = ['VM', 'Storage', 'Container'].map(type => data.filter(d => d.ResourceType === type).reduce((sum, d) => sum + d.usage_cpu, 0) / (data.length || 1));
+    const holidayUsage = [0, 1].map(h => data.filter(d => d.holiday === h).reduce((sum, d) => sum + d.usage_cpu, 0) / (data.length || 1));
+    const holidayStorageUsage = [0, 1].map(h => data.filter(d => d.holiday === h).reduce((sum, d) => sum + d.usage_storage, 0) / (data.length || 1));
+    const holidayProportion = [0, 1].map(h => data.filter(d => d.holiday === h).length / (data.length || 1) * 100);
+    const regions = ['East US', 'West US', 'North Europe', 'Southeast Asia'];
+    const regionalCpuUsage = regions.map(r => data.filter(d => d.Region === r).reduce((sum, d) => sum + d.usage_cpu, 0) / (data.length || 1) * 100);
+    const usersByRegion = regions.map(r => data.filter(d => d.Region === r).reduce((sum, d) => sum + d.users_active, 0) / (data.length || 1));
+    const peakDemand = data.filter(d => d.holiday === 1).length > 0 ? 'Holidays' : 'Non-holidays';
+    const growthRegions = [...new Set(data.map(d => d.Region))].join(', ');
+    const externalFactors = `Economic Index: ${data[0]?.economic_index || '--'}, Cloud Demand: ${data[0]?.cloud_market_demand || '--'}`;
+    return { dates, cpuUsage, storageUsage, activeUsers, economicIndex, cloudMarketDemand, resourceTypes, holidayUsage, holidayStorageUsage, holidayProportion, regionalCpuUsage, usersByRegion, peakDemand, growthRegions, externalFactors };
+}
+
+let userTrendsChart, usageTrendsChart, resourceTypeChart, regionalCpuChart, forecastChart, 
+    actualVsPredictedChart, costTrendChart, marketDemandChart, holidayImpactChart, 
+    holidayPieChart, usersByRegionChart, holidayStorageChart, modelPerformanceChart, modelTimeChart;
+
+function initCharts(filteredData) {
+    const { dates, cpuUsage, storageUsage, activeUsers, economicIndex, cloudMarketDemand, resourceTypes, holidayUsage, holidayStorageUsage, holidayProportion, regionalCpuUsage, usersByRegion, peakDemand, growthRegions, externalFactors } = aggregateData(filteredData);
+
+    // Destroy existing charts
+    [userTrendsChart, usageTrendsChart, resourceTypeChart, regionalCpuChart, forecastChart, actualVsPredictedChart, costTrendChart, marketDemandChart, holidayImpactChart, holidayPieChart, usersByRegionChart, holidayStorageChart, modelPerformanceChart, modelTimeChart].forEach(chart => chart?.destroy());
+
+    // User Trends Chart
+    userTrendsChart = new Chart(document.getElementById('user-trends-chart'), { type: 'line', data: { labels: dates, datasets: [{ label: 'Active Users', data: activeUsers, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.2)', fill: false, pointRadius: 4, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { beginAtZero: false, title: { text: 'Active Users' } } }, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    // Usage Trends Chart
+    usageTrendsChart = new Chart(document.getElementById('usage-trends-chart'), { type: 'line', data: { labels: dates, datasets: [{ label: 'CPU Usage (%)', data: cpuUsage, borderColor: '#38bdf8', fill: false, pointRadius: 4, tension: 0.4 }, { label: 'Storage Usage (GB)', data: storageUsage, borderColor: '#10b981', fill: false, pointRadius: 4, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { beginAtZero: false, title: { text: 'Usage' } } }, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    // Resource Type Breakdown Chart
+    resourceTypeChart = new Chart(document.getElementById('resource-type-chart'), { type: 'pie', data: { labels: ['VM', 'Storage', 'Container'], datasets: [{ label: 'CPU Usage by Resource Type', data: resourceTypes, backgroundColor: ['#38bdf8', '#10b981', '#f59e0b'], borderColor: '#1f2937', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, tooltip: { enabled: true } } } });
+
+    // Regional CPU Usage Distribution Chart
+    regionalCpuChart = new Chart(document.getElementById('regional-cpu-chart'), { type: 'pie', data: { labels: regions, datasets: [{ label: 'CPU Usage by Region (%)', data: regionalCpuUsage, backgroundColor: ['#38bdf8', '#10b981', '#f59e0b', '#a855f7'], borderColor: '#1f2937', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, tooltip: { enabled: true } } } });
+
+    // Forecast Chart
+    forecastChart = new Chart(document.getElementById('forecast-chart'), { type: 'line', data: { labels: sampleForecastData.dates, datasets: [{ label: 'XGB', data: sampleForecastData.predicted, borderColor: 'red', fill: false, tension: 0.4 }, { label: 'ARIMA', data: sampleForecastData.predicted.map(v => v + (Math.random() - 0.5) * 2), borderColor: 'blue', fill: false, tension: 0.4 }, { label: 'LSTM', data: sampleForecastData.predicted.map(v => v + (Math.random() - 0.5) * 3), borderColor: 'green', fill: false, tension: 0.4 }] }, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { text: 'Forecast vs Date' } }, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { title: { text: 'Forecast Value' } } } } });
+
+    // Actual vs Predicted Chart
+    actualVsPredictedChart = new Chart(document.getElementById('actual-vs-predicted-chart'), { type: 'line', data: { labels: dates, datasets: [{ label: 'Actual', data: cpuUsage, borderColor: '#38bdf8', fill: false, pointRadius: 4, tension: 0.4 }, { label: 'Predicted', data: cpuUsage.map(v => v + (Math.random() - 0.5) * 5), borderColor: '#f59e0b', fill: false, pointRadius: 4, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { beginAtZero: false, title: { text: 'CPU Usage (%)' } } }, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    // Cost Trend Chart
+    costTrendChart = new Chart(document.getElementById('cost-trend-chart'), { type: 'line', data: { labels: dates, datasets: [{ label: 'Estimated Cost ($)', data: cpuUsage.map(v => v * 0.1 * 1.215), borderColor: '#a855f7', fill: false, pointRadius: 4, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { beginAtZero: false, title: { text: 'Cost ($)' } } }, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    // Cloud Market Demand Chart
+    marketDemandChart = new Chart(document.getElementById('market-demand-chart'), { type: 'line', data: { labels: dates, datasets: [{ label: 'Cloud Market Demand', data: cloudMarketDemand, borderColor: '#f59e0b', fill: false, pointRadius: 4, tension: 0.4 }, { label: 'Estimated Cost ($)', data: cpuUsage.map(v => v * 0.1 * 1.215), borderColor: '#a855f7', fill: false, pointRadius: 4, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { beginAtZero: false, title: { text: 'Value' } } }, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    // Holiday Impact Chart
+    holidayImpactChart = new Chart(document.getElementById('holiday-impact-chart'), { type: 'bar', data: { labels: ['Non-Holiday', 'Holiday'], datasets: [{ label: 'Average CPU Usage (%)', data: holidayUsage, backgroundColor: ['#38bdf8', '#f43f5e'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, title: { text: 'CPU Usage (%)' } } }, plugins: { tooltip: { enabled: true } } } });
+
+    // Holiday Usage Pie Chart
+    holidayPieChart = new Chart(document.getElementById('holiday-pie-chart'), { type: 'pie', data: { labels: ['Non-Holiday', 'Holiday'], datasets: [{ label: 'Usage Proportion (%)', data: holidayProportion, backgroundColor: ['#38bdf8', '#f43f5e'], borderColor: '#1f2937', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, tooltip: { enabled: true } } } });
+
+    // Active Users by Region Chart
+    usersByRegionChart = new Chart(document.getElementById('users-by-region-chart'), { type: 'bar', data: { labels: regions, datasets: [{ label: 'Average Active Users', data: usersByRegion, backgroundColor: ['#38bdf8', '#10b981', '#f59e0b', '#a855f7'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, title: { text: 'Active Users' } } }, plugins: { tooltip: { enabled: true } } } });
+
+    // Holiday vs. Non-Holiday Storage Usage Chart
+    holidayStorageChart = new Chart(document.getElementById('holiday-storage-chart'), { type: 'bar', data: { labels: ['Non-Holiday', 'Holiday'], datasets: [{ label: 'Average Storage Usage (GB)', data: holidayStorageUsage, backgroundColor: ['#38bdf8', '#f43f5e'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, title: { text: 'Storage Usage (GB)' } } }, plugins: { tooltip: { enabled: true } } } });
+
+    // Model Performance Comparison Chart
+    modelPerformanceChart = new Chart(document.getElementById('model-performance-chart'), { type: 'bar', data: { labels: ['XGBoost', 'ARIMA'], datasets: [{ label: 'MAE', data: modelData.map(m => m.mae), backgroundColor: '#38bdf8' }, { label: 'RMSE', data: modelData.map(m => m.rmse), backgroundColor: '#10b981' }, { label: 'MAPE', data: modelData.map(m => m.mape), backgroundColor: '#f59e0b' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { text: 'Error Metric' } } }, plugins: { legend: { position: 'top' }, tooltip: { enabled: true } } } });
+
+    // Model Training vs. Inference Time Chart
+    modelTimeChart = new Chart(document.getElementById('model-time-chart'), { type: 'pie', data: { labels: ['XGBoost', 'ARIMA'], datasets: [{ label: 'Total Time (seconds)', data: modelData.map(m => m.train_time + m.inference_time / 1000), backgroundColor: ['#38bdf8', '#10b981'], borderColor: '#1f2937', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, tooltip: { enabled: true } } } });
+
+    // Update metrics
+    const avgCpu = (cpuUsage.reduce((sum, v) => sum + v, 0) / cpuUsage.length || 0).toFixed(2);
+    const avgStorage = (storageUsage.reduce((sum, v) => sum + v, 0) / storageUsage.length || 0).toFixed(2);
+    const avgUsers = (activeUsers.reduce((sum, v) => sum + v, 0) / activeUsers.length || 0).toFixed(2);
+    const maxUsers = Math.max(...activeUsers, 0).toFixed(2);
+    const minUsers = Math.min(...activeUsers, Infinity).toFixed(2);
+    const userGrowth = activeUsers.length > 1 ? (((activeUsers[activeUsers.length - 1] - activeUsers[0]) / activeUsers[0] * 100 || 0).toFixed(2) + '%') : '--';
+    const totalRegions = [...new Set(filteredData.map(d => d.Region))].length;
+    const costCompute = (cpuUsage.filter((_, i) => filteredData[i].ResourceType !== 'Storage').reduce((sum, v) => sum + v, 0) * 0.1 * 1.215 / cpuUsage.length || 0).toFixed(2);
+    const costStorage = (storageUsage.filter((_, i) => filteredData[i].ResourceType === 'Storage').reduce((sum, v) => sum + v, 0) * 0.01 * 1.215 / storageUsage.length || 0).toFixed(2);
+    const costTotal = (parseFloat(costCompute) + parseFloat(costStorage)).toFixed(2);
+
+    ['avgCpu', 'avgStorage', 'avgUsers', 'avg-users', 'max-users', 'min-users', 'user-growth', 'totalRegions', 'cost-compute', 'cost-storage', 'cost-total', 'peak-demand', 'growth-regions', 'external-factors'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = { avgCpu: `${avgCpu}%`, avgStorage: `${avgStorage} GB`, avgUsers, 'avg-users': avgUsers, 'max-users': maxUsers, 'min-users': minUsers, 'user-growth': userGrowth, totalRegions, 'cost-compute': `$${costCompute}`, 'cost-storage': `$${costStorage}`, 'cost-total': `$${costTotal}`, 'peak-demand': peakDemand, 'growth-regions': growthRegions, 'external-factors': externalFactors }[id] || '--';
+    });
+    document.getElementById('insights-list').innerHTML = '<li>Azure revenue growth: 33% in Q1 2023</li><li>Top trends: AIOps, cloud-native monitoring</li><li>Cloud spending growth: 21.5% in 2023</li>';
+}
+
+function populateRegionsAndModels() {
+    const regions = [...new Set(rawData.map(d => d.Region))];
+    ['region-select', 'region-select-report'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">All Regions</option>';
+        regions.forEach(r => sel.insertAdjacentHTML('beforeend', `<option value="${r}">${r}</option>`));
+    });
+
+    const modelSel = document.getElementById('model-select');
+    modelSel.innerHTML = '';
+    modelData.forEach(m => modelSel.insertAdjacentHTML('beforeend', `<option value="${m.name.toLowerCase()}">${m.name}</option>`));
+
+    const tbody = document.querySelector('#model-comparison-table tbody');
+    tbody.innerHTML = '';
+    modelData.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.dataset.mae = m.mae;
+        tr.innerHTML = `<td>${m.name}</td><td><img src="${m.image}" class="model-image" alt="${m.name}"></td><td>${m.mae}</td><td>${m.rmse}</td><td>${m.mape}</td><td>${m.train_time}s</td><td>${m.inference_time}ms</td>`;
+        tbody.appendChild(tr);
+    });
+    highlightBestModel(tbody);
+}
+
+function highlightBestModel(tbody) {
+    let bestRow = null, bestMAE = Infinity;
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const mae = parseFloat(tr.dataset.mae);
+        if (mae < bestMAE) { bestMAE = mae; bestRow = tr; }
+    });
+    if (bestRow) {
+        bestRow.classList.add('highlight');
+        document.getElementById('best-model-highlight').textContent = `Best Model: ${bestRow.cells[0].textContent} (Lowest MAE: ${bestMAE})`;
+    }
+}
+
+function downloadForecastExcel() {
+    if (!window.latestForecast) return alert('Generate forecast first!');
+    const rows = window.latestForecast.dates.map((d, i) => ({ date: d, actual: window.latestForecast.actual[i], predicted: window.latestForecast.predicted[i], ci_lower: window.latestForecast.ci_lower[i], ci_upper: window.latestForecast.ci_upper[i] }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Forecast');
+    XLSX.writeFile(wb, 'forecast.xlsx');
+}
+
+async function fetchForecast() {
+    showLoading('.loading-spinner', true);
+    document.querySelector('.error-message').style.display = 'none';
+    try {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        const region = document.getElementById('region-select').value;
+        const service = document.getElementById('service-select').value;
+        const filteredData = filterData(startDate, endDate, region, service);
+        initCharts(filteredData);
+        window.latestForecast = sampleForecastData;
+        showLoading('.loading-spinner', false);
+    } catch (err) {
+        console.error('Error fetching forecast', err);
+        document.querySelector('.error-message').style.display = 'block';
+        showLoading('.loading-spinner', false);
+    }
+}
+
+async function fetchModelComparison() {
+    showLoading('#model-comparison .loading-spinner', true);
+    document.querySelector('#model-comparison .error-message').style.display = 'none';
+    try {
+        populateRegionsAndModels();
+        const filteredData = filterData(document.getElementById('start-date').value, document.getElementById('end-date').value, document.getElementById('region-select').value, document.getElementById('service-select').value);
+        initCharts(filteredData);
+        showLoading('#model-comparison .loading-spinner', false);
+    } catch (err) {
+        console.error('Error fetching model comparison', err);
+        document.querySelector('#model-comparison .error-message').style.display = 'block';
+        showLoading('#model-comparison .loading-spinner', false);
+    }
+}
+
+function showLoading(selector, show) {
+    document.querySelector(selector).style.display = show ? 'block' : 'none';
+}
+
+function generateReport() {
+    const startDate = document.getElementById('start-date-report').value;
+    const endDate = document.getElementById('end-date-report').value;
+    const region = document.getElementById('region-select-report').value;
+    const service = document.getElementById('service-select-report').value;
+    const filtered = filterData(startDate, endDate, region, service);
+
+    if (!filtered.length) return alert("No data for selected filters");
+
+    const table = document.getElementById('report-table');
+    const thead = document.getElementById('table-head');
+    const tbody = document.getElementById('table-body');
+    table.style.display = 'table';
+
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const headers = Object.keys(filtered[0]);
+    headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        thead.appendChild(th);
+    });
+
+    filtered.forEach(row => {
+        const tr = document.createElement('tr');
+        headers.forEach(h => {
+            const td = document.createElement('td');
+            td.textContent = row[h];
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+
+    const ws = XLSX.utils.json_to_sheet(filtered);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Report");
+    XLSX.writeFile(wb, "Azure_Report.xlsx");
+}
+
+// Initialize dashboard
+(async function init() {
+    await fetchModelComparison();
+    const filtered = filterData('2023-01-01', '2023-09-30', '', '');
+    initCharts(filtered);
+})();
+
+// Event listeners
+document.getElementById('generate-forecast').addEventListener('click', fetchForecast);
+document.getElementById('apply-filters').addEventListener('click', fetchForecast);
+document.getElementById('toggleCI').addEventListener('change', fetchForecast);
+document.getElementById('model-select').addEventListener('change', fetchForecast);
+document.getElementById('download-forecast').addEventListener('click', downloadForecastExcel);
+document.getElementById('generate-report').addEventListener('click', generateReport);
+
+async function fetchCapacityPlanning() {
+  try {
+    const res = await fetch('/api/capacity-planning');
+    const data = await res.json();
+    document.getElementById('recommendations-list').innerHTML =
+      data.recommendations.map(r => `<li>${r}</li>`).join('');
+
+    // Example Risk Indicators (from API or computed)
+    document.getElementById('risk-indicators').innerHTML = data.risks.map(r => 
+      `<span class="badge bg-${r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'} me-2">${r.message}</span>`
+    ).join('');
+  } catch (err) {
+    console.error("Error fetching capacity planning", err);
+  }
+}
+
+async function fetchMonitoring() {
+  try {
+    const res = await fetch('/api/monitoring');
+    const data = await res.json();
+
+    new Chart(document.getElementById('accuracy-trend-chart'), {
+      type: 'line',
+      data: { labels: data.dates, datasets: [{ label: 'Accuracy %', data: data.accuracy, borderColor: 'blue' }] }
+    });
+
+    document.getElementById('error-drift-alert').textContent =
+      data.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+    document.getElementById('last-retrain').textContent = data.lastRetrain;
+    document.getElementById('forecast-health').textContent =
+      data.accuracy > 85 ? "🟢 Stable" : data.accuracy >= 70 ? "🟡 Caution" : "🔴 Retrain Needed";
+  } catch (err) {
+    console.error("Error fetching monitoring", err);
+  }
+}
+
+// Hook new sections into init
+(async function initCustom() {
+  await fetchCapacityPlanning();
+  await fetchMonitoring();
+})();
+
+</script>
+
+
+
+<script>
+
+// ==========================
+// Dashboard Custom Enhancements
+// ==========================
+
+// Simulated API responses (replace with real fetch calls later)
+const simulatedCapacityPlanning = {
+  recommendations: [
+    "East US Compute → Add +1500 units",
+    "West Europe Storage → Reduce –700 TB"
+  ],
+  risks: [
+    { level: "green", message: "East US: Sufficient capacity" },
+    { level: "yellow", message: "West Europe: Over-provision risk" },
+    { level: "red", message: "North Europe: Shortage risk" }
+  ],
+  forecast: {
+    dates: ["2023-10-01","2023-10-02","2023-10-03","2023-10-04"],
+    demand: [1200, 1250, 1300, 1350],
+    capacity: [1400, 1400, 1400, 1400]
+  }
+};
+
+const simulatedMonitoring = {
+  dates: ["2023-09-01","2023-09-05","2023-09-10","2023-09-15","2023-09-20"],
+  accuracy: [88, 86, 84, 82, 80],
+  errorDrift: true,
+  lastRetrain: "2023-08-25"
+};
+
+// ==========================
+// Capacity Planning Charts
+// ==========================
+function renderCapacityPlanningCharts() {
+  const ctx1 = document.getElementById('capacity-forecast-chart').getContext('2d');
+  new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: simulatedCapacityPlanning.forecast.dates,
+      datasets: [{
+        label: 'Forecasted Demand',
+        data: simulatedCapacityPlanning.forecast.demand,
+        borderColor: 'blue',
+        fill: false
+      }]
+    }
+  });
+
+  const ctx2 = document.getElementById('capacity-vs-forecast-chart').getContext('2d');
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: simulatedCapacityPlanning.forecast.dates,
+      datasets: [
+        {
+          label: 'Capacity',
+          data: simulatedCapacityPlanning.forecast.capacity,
+          backgroundColor: 'green'
+        },
+        {
+          label: 'Forecast',
+          data: simulatedCapacityPlanning.forecast.demand,
+          backgroundColor: 'orange'
+        }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+  });
+}
+
+function loadCapacityPlanning() {
+  document.getElementById('recommendations-list').innerHTML =
+    simulatedCapacityPlanning.recommendations.map(r => `<li>${r}</li>`).join('');
+
+  document.getElementById('risk-indicators').innerHTML =
+    simulatedCapacityPlanning.risks.map(r =>
+      `<span class="badge bg-${
+        r.level === 'green' ? 'success' : r.level === 'yellow' ? 'warning' : 'danger'
+      } me-2">${r.message}</span>`
+    ).join('');
+
+  renderCapacityPlanningCharts();
+}
+
+// ==========================
+// Monitoring Charts
+// ==========================
+function loadMonitoring() {
+  const ctx = document.getElementById('accuracy-trend-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: simulatedMonitoring.dates,
+      datasets: [{
+        label: 'Accuracy %',
+        data: simulatedMonitoring.accuracy,
+        borderColor: 'blue',
+        fill: false
+      }]
+    }
+  });
+
+  document.getElementById('error-drift-alert').textContent =
+    simulatedMonitoring.errorDrift ? "⚠️ Error drift detected!" : "✅ No drift";
+  document.getElementById('last-retrain').textContent = simulatedMonitoring.lastRetrain;
+  document.getElementById('forecast-health').textContent =
+    simulatedMonitoring.accuracy.slice(-1)[0] > 85 ? "🟢 Stable" :
+    simulatedMonitoring.accuracy.slice(-1)[0] >= 70 ? "🟡 Caution" :
+    "🔴 Retrain Needed";
+}
+
+// ==========================
+// Report Download
+// ==========================
+function downloadForecastReport() {
+  const rows = simulatedCapacityPlanning.forecast.dates.map((d, i) => ({
+    date: d,
+    demand: simulatedCapacityPlanning.forecast.demand[i],
+    capacity: simulatedCapacityPlanning.forecast.capacity[i]
+  }));
+
+  // Convert to CSV
+  let csv = "Date,Demand,Capacity\n";
+  rows.forEach(r => {
+    csv += `${r.date},${r.demand},${r.capacity}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "Forecast_Report.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ==========================
+// Init on tab activation
+// ==========================
+document.addEventListener("DOMContentLoaded", () => {
+  // Run once if elements exist
+  if (document.getElementById('capacity-forecast-chart')) {
+    loadCapacityPlanning();
+  }
+  if (document.getElementById('accuracy-trend-chart')) {
+    loadMonitoring();
+  }
+
+  // Also render when tabs are shown
+  const capacityTab = document.querySelector('a[href="#capacity-planning"]');
+  if (capacityTab) {
+    capacityTab.addEventListener("shown.bs.tab", () => {
+      loadCapacityPlanning();
+    });
+  }
+
+  const monitoringTab = document.querySelector('a[href="#monitoring"]');
+  if (monitoringTab) {
+    monitoringTab.addEventListener("shown.bs.tab", () => {
+      loadMonitoring();
+    });
+  }
+
+  // Download button
+  const btn = document.getElementById("download-report");
+  if (btn) btn.addEventListener("click", downloadForecastReport);
+});
+
+</script>
+</body>
+</html>
